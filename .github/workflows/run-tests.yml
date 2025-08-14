@@ -23,14 +23,12 @@ jobs:
     services:
       redis:
         image: redis
-        # Set health checks to wait until redis has started
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          # Maps port 6379 on service container to the host
           - 6379:6379
       mysql:
         image: mysql:8.0
@@ -55,10 +53,6 @@ jobs:
       - name: Copy .env
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
-      - name: Setup GitHub secrets
-        run: |
-          echo '{"github-oauth": {"github.com": "${{ secrets.ORG_GITHUB_TOKEN }}"}}' >> auth.json
-
       - name: Cache Composer Dependencies
         uses: actions/cache@v4
         with:
@@ -70,6 +64,8 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Install Dependencies
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
         run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
       - name: Generate key
@@ -81,5 +77,5 @@ jobs:
       - name: Check Coding Style
         run: ./vendor/bin/pint --test
 
-      - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
+      - name: Execute tests
         run: php artisan test
